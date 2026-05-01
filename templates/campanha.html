@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ campanha.nome }}</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/campanha.css' %}">
+</head>
+<body>
+
+<div class="layout">
+    <nav class="sidebar">
+        <div class="sidebar-logo">⚔️ RPG</div>
+        <ul class="sidebar-menu">
+            <li><a href="#" class="sidebar-item active" data-section="fichas">🧙 Fichas</a></li>
+            {% if eh_mestre %}
+            <li><a href="#" class="sidebar-item" data-section="escudo">🛡️ Escudo</a></li>
+            <li><a href="#" class="sidebar-item" data-section="bestiario">🐉 Bestiário</a></li>
+            <li><a href="#" class="sidebar-item" data-section="combate">⚔️ Combate</a></li>
+            <li><a href="#" class="sidebar-item" data-section="config">⚙️ Config</a></li>
+            {% endif %}
+        </ul>
+        <div class="sidebar-footer">
+            <a href="/" class="btn-voltar-camp">← Dashboard</a>
+            {% if not eh_mestre %}
+                {% if ja_membro %}
+                <form method="POST" action="/campanha/{{ campanha.id }}/sair/">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-sair-camp">Sair da Campanha</button>
+                </form>
+                {% else %}
+                <form method="POST" action="/campanha/{{ campanha.id }}/entrar/">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-entrar-camp">+ Entrar na Campanha</button>
+                </form>
+                {% endif %}
+            {% endif %}
+        </div>
+    </nav>
+
+    <main class="content">
+        <div class="camp-header">
+            <h1>{{ campanha.nome }}</h1>
+            {% if campanha.descricao %}<p class="camp-desc">{{ campanha.descricao }}</p>{% endif %}
+            <p class="camp-meta">Mestre: <strong>{{ campanha.mestre.username }}</strong> · {{ campanha.members.count }} player(s)</p>
+        </div>
+
+        <!-- ══════════ FICHAS ══════════ -->
+        <section id="section-fichas" class="section active">
+            <h2 class="section-titulo">🧙 Personagens na Campanha</h2>
+            {% if fichas %}
+            <div class="fichas-grid">
+                {% for f in fichas %}
+                <div class="ficha-card">
+                    <div class="ficha-card-foto">
+                        {% if f.foto %}<img src="{{ f.foto.url }}">{% else %}<span>?</span>{% endif %}
+                    </div>
+                    <div class="ficha-card-info">
+                        <div class="ficha-card-nome">{{ f.nome }}</div>
+                        <div class="ficha-card-dono">@{{ f.dono.username }}{% if f.classe %} · {{ f.classe }}{% endif %} · Nível {{ f.nivel }}</div>
+                        <div class="ficha-card-status">
+                            <span title="Vida">❤️ {{ f.vida }}/{{ f.vida_max }}</span>
+                            <span title="Energia">⚡ {{ f.energia }}/{{ f.energia_max }}</span>
+                            <span title="Sanidade">🧠 {{ f.sanidade }}/{{ f.sanidade_max }}</span>
+                            <span title="Defesa">🔰 {{ f.defesa }}</span>
+                        </div>
+                    </div>
+                    {% if eh_mestre %}
+                    <a href="/ficha/{{ f.id }}/" class="ficha-card-btn">Ver Ficha</a>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="vazio">Nenhuma ficha vinculada ainda.</p>
+            {% endif %}
+        </section>
+
+        <!-- ══════════ ESCUDO ══════════ -->
+        {% if eh_mestre %}
+        <section id="section-escudo" class="section">
+            <h2 class="section-titulo">🛡️ Escudo do Mestre</h2>
+            <p class="escudo-hint">Atualiza a cada 5 segundos.</p>
+            <div id="escudo-grid" class="escudo-grid"><p class="vazio">Carregando...</p></div>
+        </section>
+
+        <!-- ══════════ BESTIÁRIO ══════════ -->
+        <section id="section-bestiario" class="section">
+            <h2 class="section-titulo">🐉 Bestiário</h2>
+            <a href="/campanha/{{ campanha.id }}/criatura/criar/" class="btn-criar-cria">+ Nova Criatura</a>
+
+            {% if criaturas %}
+            <div class="bestiary-grid">
+                {% for c in criaturas %}
+                <div class="bestiary-card">
+                    <div class="bestiary-foto">
+                        {% if c.foto %}<img src="{{ c.foto.url }}">{% else %}<span>🐉</span>{% endif %}
+                    </div>
+                    <div class="bestiary-info">
+                        <div class="bestiary-nome">{{ c.nome }}</div>
+                        <div class="bestiary-meta">Nível {{ c.nivel }} · VD {{ c.valor_desafio }}</div>
+                        <div class="bestiary-stats">
+                            <span>❤️ {{ c.vida_max }}</span>
+                            <span>🛡️ {{ c.armadura }}</span>
+                            <span>🔰 {{ c.defesa }}</span>
+                        </div>
+                        {% if c.atk1 %}<div class="bestiary-atk">⚔️ {{ c.atk1 }}: {{ c.dano1 }}</div>{% endif %}
+                        {% if c.atk2 %}<div class="bestiary-atk">⚔️ {{ c.atk2 }}: {{ c.dano2 }}</div>{% endif %}
+                        {% if c.habilidades %}<div class="bestiary-hab">{{ c.habilidades|truncatechars:80 }}</div>{% endif %}
+                    </div>
+                    <form method="POST" action="/criatura/{{ c.id }}/deletar/" onsubmit="return confirm('Remover criatura?')" style="margin-top:8px;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn-del-cria">🗑️</button>
+                    </form>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="vazio" style="margin-top:15px;">Nenhuma criatura no bestiário ainda.</p>
+            {% endif %}
+        </section>
+
+        <!-- ══════════ COMBATE ══════════ -->
+        <section id="section-combate" class="section">
+            <h2 class="section-titulo">⚔️ Gerenciador de Combate</h2>
+
+            {% if combate_ativo %}
+            <div class="combate-ativo-banner">
+                ⚔️ Combate em andamento: <strong>{{ combate_ativo.nome }}</strong>
+                <button type="button" onclick="carregarCombate({{ combate_ativo.id }})" class="btn-retomar">Retomar</button>
+            </div>
+            {% endif %}
+
+            <!-- Setup de novo combate -->
+            <div id="combate-setup" class="combate-setup">
+                <h3>Iniciar Novo Combate</h3>
+                <div class="setup-campo">
+                    <label>Nome do combate</label>
+                    <input id="combateNome" type="text" value="Combate" placeholder="Ex: Emboscada na floresta">
+                </div>
+
+                <div class="setup-secao">
+                    <h4>👥 Jogadores (iniciativa)</h4>
+                    <div id="setup-fichas">
+                        {% for f in fichas %}
+                        <div class="setup-linha">
+                            <input type="checkbox" name="fichas" value="{{ f.id }}" id="chkf{{ f.id }}" checked>
+                            <label for="chkf{{ f.id }}">{{ f.nome }} (@{{ f.dono.username }})</label>
+                            <input type="number" id="ini_f{{ f.id }}" placeholder="Iniciativa" min="1" max="30" style="width:100px;">
+                        </div>
+                        {% endfor %}
+                        {% if not fichas %}<p class="vazio">Nenhuma ficha na campanha.</p>{% endif %}
+                    </div>
+                </div>
+
+                <div class="setup-secao">
+                    <h4>🐉 Criaturas</h4>
+                    <div id="setup-criaturas">
+                        {% for c in criaturas %}
+                        <div class="setup-linha">
+                            <input type="checkbox" name="criaturas" value="{{ c.id }}" id="chkc{{ c.id }}">
+                            <label for="chkc{{ c.id }}">{{ c.nome }} (VD {{ c.valor_desafio }})</label>
+                            <input type="number" id="qtd_{{ c.id }}" value="1" min="1" max="10" style="width:60px;" placeholder="Qtd">
+                            <input type="number" id="ini_c{{ c.id }}" placeholder="Iniciativa" min="1" max="30" style="width:100px;">
+                        </div>
+                        {% endfor %}
+                        {% if not criaturas %}<p class="vazio">Sem criaturas no bestiário.</p>{% endif %}
+                    </div>
+                </div>
+
+                <div id="vd-preview" class="vd-total-preview" style="display:none;"></div>
+                <button type="button" onclick="iniciarCombate()" class="btn-iniciar-combate">⚔️ Iniciar Combate</button>
+            </div>
+
+            <!-- Tela de combate ativo -->
+            <div id="combate-arena" class="combate-arena" style="display:none;">
+                <div class="arena-header">
+                    <div>
+                        <span id="arenaNome" class="arena-nome"></span>
+                        <span id="arenaRodada" class="arena-rodada"></span>
+                    </div>
+                    <div class="arena-acoes-header">
+                        <span id="arenaVD" class="vd-badge"></span>
+                        <button type="button" onclick="proximoTurno()" class="btn-proximo">▶ Próximo Turno</button>
+                        <button type="button" onclick="encerrarCombate()" class="btn-encerrar">✖ Encerrar</button>
+                    </div>
+                </div>
+                <div id="arena-lista" class="arena-lista"></div>
+            </div>
+        </section>
+
+        <!-- CONFIG -->
+        <section id="section-config" class="section">
+            <h2 class="section-titulo">⚙️ Configurações</h2>
+            <div class="config-box">
+                <p style="color:#888; margin-bottom:20px;">Ações da campanha</p>
+                <form method="POST" action="/campanha/{{ campanha.id }}/deletar/" onsubmit="return confirm('Deletar a campanha permanentemente?')">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-deletar-camp">🗑️ Deletar Campanha</button>
+                </form>
+            </div>
+        </section>
+        {% endif %}
+    </main>
+</div>
+
+<script>
+const CAMPANHA_ID = {{ campanha.id }};
+const CSRF = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+let combateAtualId = null;
+
+// ─── NAVEGAÇÃO ───
+document.querySelectorAll('.sidebar-item').forEach(item => {
+    item.addEventListener('click', e => {
+        e.preventDefault();
+        const target = item.dataset.section;
+        document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        item.classList.add('active');
+        document.getElementById('section-' + target).classList.add('active');
+        if (target === 'escudo') carregarEscudo();
+        if (target === 'combate' && combateAtualId) carregarCombate(combateAtualId);
+    });
+});
+
+// ─── ESCUDO ───
+function pct(a, b) { return b > 0 ? Math.min(100, Math.round((a / b) * 100)) : 0; }
+
+function carregarEscudo() {
+    fetch(`/campanha/${CAMPANHA_ID}/escudo/`)
+        .then(r => r.json())
+        .then(data => {
+            const grid = document.getElementById('escudo-grid');
+            if (!data.fichas?.length) { grid.innerHTML = '<p class="vazio">Nenhuma ficha na campanha.</p>'; return; }
+            grid.innerHTML = data.fichas.map(f => {
+                const pv = pct(f.vida, f.vida_max), pe = pct(f.energia, f.energia_max), ps = pct(f.sanidade, f.sanidade_max);
+                const corVida = pv <= 25 ? '#e55' : pv <= 50 ? '#fa0' : '#5a5';
+                return `<div class="escudo-card">
+                    <div class="escudo-foto">${f.foto ? `<img src="${f.foto}">` : '<span>?</span>'}</div>
+                    <div class="escudo-info">
+                        <div class="escudo-nome">${f.nome}</div>
+                        <div class="escudo-dono">@${f.dono}${f.classe ? ' · ' + f.classe : ''} · Nv${f.nivel}</div>
+                        <div class="escudo-barras">
+                            <div class="barra-row"><span>❤️ ${f.vida}/${f.vida_max}</span><div class="mini-barra"><div style="width:${pv}%;background:${corVida};height:100%;border-radius:2px;transition:.3s"></div></div></div>
+                            <div class="barra-row"><span>⚡ ${f.energia}/${f.energia_max}</span><div class="mini-barra"><div style="width:${pe}%;background:#48f;height:100%;border-radius:2px;transition:.3s"></div></div></div>
+                            <div class="barra-row"><span>🧠 ${f.sanidade}/${f.sanidade_max}</span><div class="mini-barra"><div style="width:${ps}%;background:#a5f;height:100%;border-radius:2px;transition:.3s"></div></div></div>
+                            <div style="margin-top:4px;font-size:.78rem;color:#888">🛡️ Arm:${f.armadura} · 🔰 Def:${f.defesa}</div>
+                        </div>
+                    </div>
+                    <a href="/ficha/${f.id}/" class="ficha-card-btn" style="margin-top:8px;">Abrir</a>
+                </div>`;
+            }).join('');
+        });
+}
+setInterval(() => {
+    if (document.getElementById('section-escudo')?.classList.contains('active')) carregarEscudo();
+}, 5000);
+
+// ─── COMBATE ───
+async function iniciarCombate() {
+    const nome = document.getElementById('combateNome').value;
+    const body = new URLSearchParams({ nome });
+
+    document.querySelectorAll('#setup-fichas input[type=checkbox]:checked').forEach(chk => {
+        const fid = chk.value;
+        body.append('fichas[]', fid);
+        const ini = document.getElementById(`ini_f${fid}`)?.value || Math.floor(Math.random() * 20) + 1;
+        body.append(`iniciativa_${fid}`, ini);
+    });
+    document.querySelectorAll('#setup-criaturas input[type=checkbox]:checked').forEach(chk => {
+        const cid = chk.value;
+        body.append('criaturas[]', cid);
+        const qtd = document.getElementById(`qtd_${cid}`)?.value || 1;
+        const ini = document.getElementById(`ini_c${cid}`)?.value || Math.floor(Math.random() * 20) + 1;
+        body.append(`qtd_${cid}`, qtd);
+        body.append(`ini_criatura_${cid}`, ini);
+    });
+
+    const res = await fetch(`/campanha/${CAMPANHA_ID}/combate/iniciar/`, {
+        method: 'POST', headers: { 'X-CSRFToken': CSRF }, body
+    });
+    const data = await res.json();
+    if (data.status === 'ok') {
+        combateAtualId = data.combate_id;
+        document.getElementById('combate-setup').style.display = 'none';
+        document.getElementById('combate-arena').style.display = 'block';
+        carregarCombate(data.combate_id);
+    }
+}
+
+async function carregarCombate(id) {
+    combateAtualId = id;
+    const res = await fetch(`/combate/${id}/api/`);
+    const data = await res.json();
+
+    document.getElementById('arenaNome').textContent = data.nome;
+    document.getElementById('arenaRodada').textContent = `Rodada ${data.rodada}`;
+    const vd = data.valor_desafio_total;
+    document.getElementById('arenaVD').textContent = vd > 0 ? `VD Total: ${vd}` : '';
+
+    const lista = document.getElementById('arena-lista');
+    lista.innerHTML = data.participantes.map(p => {
+        const pv = p.vida_max > 0 ? Math.min(100, Math.round(p.vida_atual / p.vida_max * 100)) : 0;
+        const corVida = pv <= 25 ? '#e55' : pv <= 50 ? '#fa0' : '#5a5';
+        const tipo = p.eh_player ? '🧙' : '🐉';
+        const ativo = p.ativo ? ' participante-ativo' : '';
+        const derrotado = p.derrotado ? ' participante-derrotado' : '';
+        return `<div class="participante${ativo}${derrotado}" id="part-${p.id}">
+            <div class="part-info">
+                <span class="part-tipo">${tipo}</span>
+                <span class="part-nome">${p.nome}</span>
+                <span class="part-ini">🎲 ${p.iniciativa}</span>
+                <span class="part-vida">❤️ ${p.vida_atual}/${p.vida_max}</span>
+                <div class="mini-barra" style="width:100px"><div style="width:${pv}%;background:${corVida};height:100%;border-radius:2px;transition:.4s"></div></div>
+            </div>
+            ${!p.derrotado ? `<div class="part-acoes">
+                <input type="number" id="dmg-${p.id}" placeholder="Valor" min="1" style="width:70px">
+                <button onclick="aplicarAcao('dano','${p.id}')" class="btn-dano">💔 Dano</button>
+                <button onclick="aplicarAcao('cura','${p.id}')" class="btn-cura">💚 Curar</button>
+            </div>` : '<div class="part-derrotado-label">💀 Derrotado</div>'}
+        </div>`;
+    }).join('');
+
+    if (!data.ativo) {
+        document.getElementById('combate-arena').style.display = 'none';
+        document.getElementById('combate-setup').style.display = 'block';
+        combateAtualId = null;
+    }
+}
+
+async function aplicarAcao(tipo, pid) {
+    const valor = parseInt(document.getElementById(`dmg-${pid}`)?.value || 0);
+    if (!valor || valor < 1) return;
+    await fetch(`/combate/${combateAtualId}/acao/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': CSRF },
+        body: new URLSearchParams({ acao: tipo, participante_id: pid, valor })
+    });
+    carregarCombate(combateAtualId);
+}
+
+async function proximoTurno() {
+    await fetch(`/combate/${combateAtualId}/acao/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': CSRF },
+        body: new URLSearchParams({ acao: 'proximo_turno' })
+    });
+    carregarCombate(combateAtualId);
+}
+
+async function encerrarCombate() {
+    if (!confirm('Encerrar o combate?')) return;
+    await fetch(`/combate/${combateAtualId}/acao/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': CSRF },
+        body: new URLSearchParams({ acao: 'encerrar' })
+    });
+    document.getElementById('combate-arena').style.display = 'none';
+    document.getElementById('combate-setup').style.display = 'block';
+    combateAtualId = null;
+}
+</script>
+</body>
+</html>

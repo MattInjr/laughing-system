@@ -1,0 +1,247 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    background: #0d0d0d;
+    font-family: Arial, sans-serif;
+    color: #e0e0e0;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.layout { display: flex; height: 100vh; }
+
+/* SIDEBAR */
+.sidebar {
+    width: 200px;
+    min-width: 200px;
+    background: #111;
+    border-right: 1px solid #333;
+    display: flex;
+    flex-direction: column;
+    padding: 20px 0;
+}
+
+.sidebar-logo {
+    font-size: 1.3rem;
+    font-weight: bold;
+    color: #ccc;
+    text-align: center;
+    padding: 0 20px 20px;
+    border-bottom: 1px solid #2a2a2a;
+    margin-bottom: 10px;
+}
+
+.sidebar-menu { list-style: none; flex: 1; }
+
+.sidebar-item {
+    display: block;
+    padding: 12px 20px;
+    color: #888;
+    text-decoration: none;
+    font-size: 0.95rem;
+    border-left: 3px solid transparent;
+    transition: background 0.2s, color 0.2s;
+}
+
+.sidebar-item:hover { background: #1a1a1a; color: #ccc; }
+.sidebar-item.active { background: #1a1a1a; color: #fff; border-left-color: #5555cc; }
+
+.sidebar-footer {
+    padding: 15px 20px;
+    border-top: 1px solid #2a2a2a;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.btn-voltar-camp {
+    display: block;
+    padding: 8px;
+    background: #1a1a1a;
+    color: #888;
+    border: 1px solid #333;
+    text-decoration: none;
+    text-align: center;
+    font-size: 0.85rem;
+    transition: background 0.2s;
+}
+
+.btn-voltar-camp:hover { background: #2a2a2a; color: #ccc; }
+
+.btn-entrar-camp {
+    width: 100%;
+    padding: 8px;
+    background: #1a3a1a;
+    color: #8f8;
+    border: 1px solid #2a5a2a;
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+
+.btn-sair-camp {
+    width: 100%;
+    padding: 8px;
+    background: #2a0a0a;
+    color: #f88;
+    border: 1px solid #5a1a1a;
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+
+/* CONTEÚDO */
+.content { flex: 1; overflow-y: auto; padding: 30px; }
+
+.section { display: none; }
+.section.active { display: block; }
+
+.camp-header {
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #2a2a2a;
+}
+
+.camp-header h1 { color: #ccc; font-size: 1.5rem; margin-bottom: 6px; }
+.camp-desc { color: #666; font-size: 0.9rem; margin-bottom: 6px; }
+.camp-meta { color: #555; font-size: 0.8rem; }
+.camp-meta strong { color: #888; }
+
+.section-titulo {
+    color: #bbb;
+    font-size: 1.1rem;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #2a2a2a;
+    padding-bottom: 8px;
+}
+
+/* FICHAS GRID */
+.fichas-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.ficha-card {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    padding: 12px;
+}
+
+.ficha-card-foto {
+    width: 50px;
+    height: 50px;
+    background: #222;
+    border: 1px solid #444;
+    overflow: hidden;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ficha-card-foto img { width: 100%; height: 100%; object-fit: cover; }
+.ficha-card-foto span { color: #555; font-size: 1.2rem; }
+
+.ficha-card-info { flex: 1; }
+.ficha-card-nome { font-weight: bold; color: #ddd; margin-bottom: 2px; }
+.ficha-card-dono { color: #666; font-size: 0.8rem; margin-bottom: 6px; }
+
+.ficha-card-status {
+    display: flex;
+    gap: 12px;
+    font-size: 0.85rem;
+    color: #aaa;
+}
+
+.ficha-card-btn {
+    padding: 6px 14px;
+    background: #1a2a4a;
+    color: #8ab4f8;
+    border: 1px solid #2a4a7a;
+    text-decoration: none;
+    font-size: 0.8rem;
+    flex-shrink: 0;
+    transition: background 0.2s;
+}
+
+.ficha-card-btn:hover { background: #1e3560; }
+
+/* ESCUDO */
+.escudo-hint { color: #555; font-size: 0.8rem; margin-bottom: 15px; }
+
+.escudo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 15px;
+}
+
+.escudo-card {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    padding: 15px;
+    display: flex;
+    gap: 12px;
+}
+
+.escudo-foto {
+    width: 55px;
+    height: 55px;
+    background: #222;
+    border: 1px solid #444;
+    overflow: hidden;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.escudo-foto img { width: 100%; height: 100%; object-fit: cover; }
+.escudo-foto span { color: #555; font-size: 1.5rem; }
+
+.escudo-info { flex: 1; }
+.escudo-nome { font-weight: bold; color: #ddd; font-size: 0.95rem; margin-bottom: 2px; }
+.escudo-dono { color: #555; font-size: 0.75rem; margin-bottom: 8px; }
+
+.escudo-barras {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 8px;
+    font-size: 0.8rem;
+}
+
+.barra-label { color: #666; }
+
+.barra-valor {
+    font-weight: bold;
+    text-align: right;
+}
+
+.barra-valor.vida     { color: #f87171; }
+.barra-valor.energia  { color: #60a5fa; }
+.barra-valor.sanidade { color: #a78bfa; }
+.barra-valor.armadura { color: #94a3b8; }
+
+/* CONFIG */
+.config-box {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    padding: 20px;
+    max-width: 400px;
+}
+
+.btn-deletar-camp {
+    padding: 10px 20px;
+    background: #2a0a0a;
+    color: #f88;
+    border: 1px solid #5a1a1a;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.btn-deletar-camp:hover { background: #3a1010; }
+
+.vazio { color: #555; font-size: 0.9rem; }
+
+a { text-decoration: none; color: inherit; }

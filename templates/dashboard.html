@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+</head>
+<body>
+
+<div class="layout">
+
+    <!-- SIDEBAR -->
+    <nav class="sidebar">
+        <div class="sidebar-logo">⚔️ RPG</div>
+
+        <ul class="sidebar-menu">
+            <li>
+                <a href="#" class="sidebar-item active" data-section="personagens">
+                    🧙 Personagens
+                </a>
+            </li>
+            <li>
+                <a href="#" class="sidebar-item" data-section="campanhas">
+                    🗺️ Campanhas
+                </a>
+            </li>
+            {% if request.user.tipo == 'mestre' %}
+            <li>
+                <a href="#" class="sidebar-item" data-section="rolagens">
+                    🎲 Rolagens
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+
+        <div class="sidebar-footer">
+            <span class="sidebar-user">👤 {{ request.user.username }}</span>
+            <form action="/logout/" method="POST">
+                {% csrf_token %}
+                <button type="submit" class="btn-sair">Sair</button>
+            </form>
+        </div>
+    </nav>
+
+    <!-- CONTEÚDO -->
+    <main class="content">
+
+        <!-- PERSONAGENS -->
+        <section id="section-personagens" class="section active">
+            <h1 class="titulo">Personagens</h1>
+            <div class="container">
+                {% for f in fichas %}
+                <a href="/ficha/{{f.id}}/">
+                    <div class="card">
+                        <div class="wrapper">
+                            {% if f.foto %}
+                                <img src="{{ f.foto.url }}" class="cover-image">
+                            {% else %}
+                                <div class="cover-placeholder">?</div>
+                            {% endif %}
+                        </div>
+                        <h2 class="title">{{ f.nome }}</h2>
+                        {% if f.foto %}
+                            <img src="{{ f.foto.url }}" class="character">
+                        {% endif %}
+                    </div>
+                </a>
+                {% empty %}
+                <p class="vazio">Nenhum personagem ainda.</p>
+                {% endfor %}
+            </div>
+            <a href="/criar/" class="btn-criar">+ Criar Personagem</a>
+        </section>
+
+        <!-- CAMPANHAS -->
+        <section id="section-campanhas" class="section">
+            <h1 class="titulo">Campanhas</h1>
+
+            {% if request.user.tipo == 'mestre' %}
+            <a href="/campanha/criar/" class="btn-criar" style="margin-bottom:20px; display:inline-block;">
+                + Nova Campanha
+            </a>
+            {% endif %}
+
+            <div class="container">
+                {% for c in campanhas %}
+                <a href="/campanha/{{ c.id }}/">
+                    <div class="camp-card">
+                        <div class="camp-card-nome">{{ c.nome }}</div>
+                        <div class="camp-card-meta">
+                            Mestre: {{ c.mestre.username }}<br>
+                            {{ c.members.count }} player(s) · {{ c.fichas.count }} ficha(s)
+                        </div>
+                    </div>
+                </a>
+                {% empty %}
+                <p class="vazio">
+                    {% if request.user.tipo == 'mestre' %}
+                        Nenhuma campanha criada ainda.
+                    {% else %}
+                        Você não está em nenhuma campanha ainda.
+                    {% endif %}
+                </p>
+                {% endfor %}
+            </div>
+        </section>
+
+        <!-- ROLAGENS (só mestre) -->
+        {% if request.user.tipo == 'mestre' %}
+        <section id="section-rolagens" class="section">
+            <h1 class="titulo">📜 Rolagens Recentes</h1>
+            {% if rolagens %}
+            <table class="tabela-rolagens">
+                <thead>
+                    <tr>
+                        <th>Jogador</th>
+                        <th>Personagem</th>
+                        <th>Expressão</th>
+                        <th>Dados</th>
+                        <th>Total</th>
+                        <th>Quando</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in rolagens %}
+                    <tr>
+                        <td>{{ r.jogador.username }}</td>
+                        <td>{{ r.ficha.nome }}</td>
+                        <td>{{ r.expressao }}</td>
+                        <td>[{{ r.resultado.dados|join:", " }}{% if r.resultado.modificador != 0 %} {{ r.resultado.modificador|stringformat:"+d" }}{% endif %}]</td>
+                        <td><strong>{{ r.resultado.total }}</strong></td>
+                        <td>{{ r.criado_em|timesince }} atrás</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="vazio">Nenhuma rolagem ainda.</p>
+            {% endif %}
+        </section>
+        {% endif %}
+
+    </main>
+</div>
+
+<script>
+const items = document.querySelectorAll('.sidebar-item');
+const sections = document.querySelectorAll('.section');
+
+items.forEach(item => {
+    item.addEventListener('click', e => {
+        e.preventDefault();
+        const target = item.dataset.section;
+
+        items.forEach(i => i.classList.remove('active'));
+        sections.forEach(s => s.classList.remove('active'));
+
+        item.classList.add('active');
+        document.getElementById('section-' + target).classList.add('active');
+    });
+});
+</script>
+
+</body>
+</html>

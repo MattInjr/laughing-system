@@ -1,0 +1,4 @@
+<h1>Fichas</h1>
+{% for ficha in fichas %}
+<a href="/ficha/{{ ficha.id }}/">{{ ficha.nome }}</a><br>
+{% endfor %}

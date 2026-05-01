@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Nova Campanha</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <style>
+        .form-campanha {
+            max-width: 500px;
+            margin: 60px auto;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            padding: 30px;
+        }
+        .form-campanha h1 {
+            color: #ccc;
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+            border-bottom: 1px solid #333;
+            padding-bottom: 10px;
+        }
+        .form-campanha label {
+            display: block;
+            color: #888;
+            font-size: 0.85rem;
+            margin-bottom: 4px;
+            margin-top: 12px;
+        }
+        .form-campanha input,
+        .form-campanha textarea {
+            width: 100%;
+            padding: 8px;
+            background: #111;
+            border: 1px solid #444;
+            color: #fff;
+            font-size: 0.95rem;
+        }
+        .form-campanha textarea { height: 80px; resize: vertical; }
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .btn-criar-camp {
+            flex: 1;
+            padding: 10px;
+            background: #1a2a4a;
+            color: #8ab4f8;
+            border: 1px solid #2a4a7a;
+            cursor: pointer;
+            font-size: 0.95rem;
+        }
+        .btn-cancelar {
+            padding: 10px 20px;
+            background: #1a1a1a;
+            color: #666;
+            border: 1px solid #333;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+<div class="form-campanha">
+    <h1>🗺️ Nova Campanha</h1>
+    <form method="POST">
+        {% csrf_token %}
+        <label>Nome da Campanha</label>
+        <input type="text" name="nome" placeholder="Ex: A Maldição de Ravenloft" required autofocus>
+
+        <label>Descrição (opcional)</label>
+        <textarea name="descricao" placeholder="Breve descrição da campanha..."></textarea>
+
+        <div class="form-actions">
+            <button type="submit" class="btn-criar-camp">✅ Criar Campanha</button>
+            <a href="/" class="btn-cancelar">Cancelar</a>
+        </div>
+    </form>
+</div>
+</body>
+</html>

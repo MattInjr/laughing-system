@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Ficha — {{ ficha.nome }}</title>
+    {% load static ficha_filters %}
+    {% load static%}
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+
+<form method="POST" enctype="multipart/form-data" id="form">
+{% csrf_token %}
+
+<div class="ficha-layout">
+
+    <!-- SIDEBAR -->
+    <nav class="ficha-sidebar">
+        <a href="/" class="ficha-sidebar-back">← Voltar</a>
+
+        <ul class="ficha-menu">
+            <li><a href="#" class="ficha-item active" data-tab="info">📋 Informações</a></li>
+            <li><a href="#" class="ficha-item" data-tab="atributos">💪 Atributos</a></li>
+            <li><a href="#" class="ficha-item" data-tab="combate">⚔️ Combate</a></li>
+            <li><a href="#" class="ficha-item" data-tab="inventario">🎒 Inventário</a></li>
+            <li><a href="#" class="ficha-item" data-tab="habilidades">✨ Habilidades</a></li>
+            <li><a href="#" class="ficha-item" data-tab="dados">🎲 Dados</a></li>
+        </ul>
+
+        <div class="ficha-sidebar-actions">
+            <button type="submit" name="voltar" class="btn-salvar">💾 Salvar</button>
+            <button type="button" onclick="confirmarDelete()" class="btn-deletar">🗑️ Excluir</button>
+        </div>
+    </nav>
+
+    <!-- CONTEÚDO -->
+    <div class="ficha-content">
+
+        <!-- ══════════════════════════════
+             ABA: INFORMAÇÕES
+        ══════════════════════════════ -->
+        <div id="tab-info" class="tab active">
+            <h2 class="tab-titulo">Informações</h2>
+
+            <div class="topo">
+                <div class="foto" onclick="document.getElementById('fotoInput').click()">
+                    {% if ficha.foto %}
+                        <img id="preview" src="{{ ficha.foto.url }}">
+                    {% else %}
+                        <img id="preview" style="display:none;">
+                        <span id="placeholder">IMG</span>
+                    {% endif %}
+                    <input type="file" name="foto" id="fotoInput" accept="image/*">
+                </div>
+
+                <div class="info">
+                    <label>Nome</label>
+                    <input type="text" name="nome" value="{{ ficha.nome }}">
+
+                    <div class="linha" style="margin-top:6px;">
+                        <div style="flex:2">
+                            <label style="font-size:.75rem;color:#888">Classe / Origem</label>
+                            <input name="classe" placeholder="Ex: Combatente" value="{{ ficha.classe }}">
+                        </div>
+                        <div style="flex:1">
+                            <label style="font-size:.75rem;color:#888">Nível / NEX</label>
+                            <input name="nivel" type="number" min="1" value="{{ ficha.nivel }}" id="inNivel">
+                        </div>
+                    </div>
+
+                    <div class="linha" style="margin-top:6px;">
+                        <input name="raca" placeholder="Raça" value="{{ ficha.raca }}">
+                        <input name="idade" placeholder="Idade" value="{{ ficha.idade }}">
+                        <input name="altura" placeholder="Altura" value="{{ ficha.altura }}">
+                        <input name="peso" placeholder="Peso" value="{{ ficha.peso }}">
+                    </div>
+
+                    <label style="margin-top:6px;">Descrição</label>
+                    <textarea name="descricao" style="height:70px">{{ ficha.descricao }}</textarea>
+                </div>
+            </div>
+
+            <!-- STATUS COM BARRAS -->
+            <h2 class="tab-titulo" style="margin-top:20px;">Status</h2>
+
+            <!-- Fórmulas (collapsible) -->
+            <details class="formulas-box">
+                <summary>⚙️ Fórmulas de cálculo automático</summary>
+                <div class="formulas-grid">
+                    <div>
+                        <label>Vida Máx</label>
+                        <input name="formula_vida" placeholder="Ex: CON*5 + NIVEL*3" value="{{ ficha.formula_vida }}">
+                        <span class="formula-hint">Vars: FOR DES CON INT SAB CAR NIVEL</span>
+                    </div>
+                    <div>
+                        <label>Energia Máx</label>
+                        <input name="formula_energia" placeholder="Ex: SAB*3 + NIVEL*2" value="{{ ficha.formula_energia }}">
+                    </div>
+                    <div>
+                        <label>Sanidade Máx</label>
+                        <input name="formula_sanidade" placeholder="Ex: CAR*4 + SAB*2" value="{{ ficha.formula_sanidade }}">
+                    </div>
+                    <div>
+                        <label>Defesa</label>
+                        <input name="formula_defesa" placeholder="Ex: DES/2 + ARMADURA" value="{{ ficha.formula_defesa }}">
+                    </div>
+                </div>
+                <button type="button" class="btn-calcular" onclick="calcularFormulas()">🔄 Aplicar fórmulas</button>
+            </details>
+
+            <div class="status-grid">
+                <div class="status-bloco vida-bloco">
+                    <div class="status-header">
+                        <span>❤️ Vida</span>
+                        <div class="status-inputs">
+                            <input name="vida" type="number" id="inVida" value="{{ ficha.vida }}" title="Atual">
+                            <span>/</span>
+                            <input name="vida_max" type="number" id="inVidaMax" value="{{ ficha.vida_max }}" title="Máximo">
+                        </div>
+                    </div>
+                    <div class="barra-wrapper"><div class="barra barra-vida" id="barraVida"></div></div>
+                </div>
+                <div class="status-bloco energia-bloco">
+                    <div class="status-header">
+                        <span>⚡ Energia</span>
+                        <div class="status-inputs">
+                            <input name="energia" type="number" id="inEnergia" value="{{ ficha.energia }}" title="Atual">
+                            <span>/</span>
+                            <input name="energia_max" type="number" id="inEnergiaMax" value="{{ ficha.energia_max }}" title="Máximo">
+                        </div>
+                    </div>
+                    <div class="barra-wrapper"><div class="barra barra-energia" id="barraEnergia"></div></div>
+                </div>
+                <div class="status-bloco san-bloco">
+                    <div class="status-header">
+                        <span>🧠 Sanidade</span>
+                        <div class="status-inputs">
+                            <input name="sanidade" type="number" id="inSanidade" value="{{ ficha.sanidade }}" title="Atual">
+                            <span>/</span>
+                            <input name="sanidade_max" type="number" id="inSanidadeMax" value="{{ ficha.sanidade_max }}" title="Máximo">
+                        </div>
+                    </div>
+                    <div class="barra-wrapper"><div class="barra barra-san" id="barraSan"></div></div>
+                </div>
+                <div class="status-bloco arm-bloco">
+                    <div class="status-header"><span>🛡️ Armadura</span></div>
+                    <input name="armadura" type="number" id="inArmadura" value="{{ ficha.armadura }}" class="stat-solo">
+                </div>
+                <div class="status-bloco def-bloco">
+                    <div class="status-header"><span>🔰 Defesa</span></div>
+                    <input name="defesa" type="number" id="inDefesa" value="{{ ficha.defesa }}" class="stat-solo">
+                </div>
+            </div>
+
+            <!-- CAMPANHA -->
+            <h2 class="tab-titulo" style="margin-top:20px;">Campanha</h2>
+            <div class="campo-campanha">
+                <select name="campanha">
+                    <option value="0">— Sem campanha —</option>
+                    {% for c in campanhas_disponiveis %}
+                    <option value="{{ c.id }}" {% if ficha.campanha.id == c.id %}selected{% endif %}>
+                        {{ c.nome }} (Mestre: {{ c.mestre.username }})
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <!-- ══════════════════════════════
+             ABA: ATRIBUTOS
+        ══════════════════════════════ -->
+        <div id="tab-atributos" class="tab">
+            <h2 class="tab-titulo">Atributos</h2>
+            <p class="hint-text">Bônus = modificador de atributo aplicado em testes. Calculado automaticamente (atributo − 10) ÷ 2, mas editável.</p>
+
+            <div class="atributos-table">
+                <div class="attr-header">
+                    <span>Atributo</span><span>Valor</span><span>Bônus</span><span>Rolar</span>
+                </div>
+                {% for attr, label, emoji in atributos_lista %}
+                <div class="attr-row" id="row-{{ attr }}">
+                    <span class="attr-label">{{ emoji }} {{ label }}</span>
+                    <input name="{{ attr }}" type="number" class="attr-val" id="in{{ attr }}" value="{{ ficha|attr_value:attr }}" oninput="calcBonus('{{ attr }}')">
+                    <input name="bonus_{{ attr }}" type="number" class="attr-bonus" id="bonus_{{ attr }}" value="{{ ficha|bonus_value:attr }}">
+                    <button type="button" class="btn-rolar-attr" onclick="rolarAtributo('{{ label }}', '{{ attr }}')">🎲</button>
+                </div>
+                {% empty %}
+                {% endfor %}
+                <!-- fallback direto caso atributos_lista esteja vazio -->
+                <div class="attr-row"><span class="attr-label">💪 Força</span><input name="forca" type="number" class="attr-val" id="inforca" value="{{ ficha.forca }}" oninput="calcBonus('forca')"><input name="bonus_forca" type="number" class="attr-bonus" id="bonus_forca" value="{{ ficha.bonus_forca }}"><button type="button" class="btn-rolar-attr" onclick="rolarAtributo('Força','forca')">🎲</button></div>
+                <div class="attr-row"><span class="attr-label">🏹 Destreza</span><input name="destreza" type="number" class="attr-val" id="indestreza" value="{{ ficha.destreza }}" oninput="calcBonus('destreza')"><input name="bonus_destreza" type="number" class="attr-bonus" id="bonus_destreza" value="{{ ficha.bonus_destreza }}"><button type="button" class="btn-rolar-attr" onclick="rolarAtributo('Destreza','destreza')">🎲</button></div>
+                <div class="attr-row"><span class="attr-label">🫀 Constituição</span><input name="constituicao" type="number" class="attr-val" id="inconstituicao" value="{{ ficha.constituicao }}" oninput="calcBonus('constituicao')"><input name="bonus_constituicao" type="number" class="attr-bonus" id="bonus_constituicao" value="{{ ficha.bonus_constituicao }}"><button type="button" class="btn-rolar-attr" onclick="rolarAtributo('Constituição','constituicao')">🎲</button></div>
+                <div class="attr-row"><span class="attr-label">🧠 Inteligência</span><input name="inteligencia" type="number" class="attr-val" id="ininteligencia" value="{{ ficha.inteligencia }}" oninput="calcBonus('inteligencia')"><input name="bonus_inteligencia" type="number" class="attr-bonus" id="bonus_inteligencia" value="{{ ficha.bonus_inteligencia }}"><button type="button" class="btn-rolar-attr" onclick="rolarAtributo('Inteligência','inteligencia')">🎲</button></div>
+                <div class="attr-row"><span class="attr-label">🌿 Sabedoria</span><input name="sabedoria" type="number" class="attr-val" id="insabedoria" value="{{ ficha.sabedoria }}" oninput="calcBonus('sabedoria')"><input name="bonus_sabedoria" type="number" class="attr-bonus" id="bonus_sabedoria" value="{{ ficha.bonus_sabedoria }}"><button type="button" class="btn-rolar-attr" onclick="rolarAtributo('Sabedoria','sabedoria')">🎲</button></div>
+                <div class="attr-row"><span class="attr-label">✨ Carisma</span><input name="carisma" type="number" class="attr-val" id="incarisma" value="{{ ficha.carisma }}" oninput="calcBonus('carisma')"><input name="bonus_carisma" type="number" class="attr-bonus" id="bonus_carisma" value="{{ ficha.bonus_carisma }}"><button type="button" class="btn-rolar-attr" onclick="rolarAtributo('Carisma','carisma')">🎲</button></div>
+            </div>
+
+            <div id="resultado-attr" class="resultado-dado" style="display:none; margin-top:15px;"></div>
+
+            <!-- NEX / Evolução -->
+            <div class="evolucao-box" style="margin-top:25px;">
+                <h3>📈 Evolução de Personagem</h3>
+                <p class="hint-text">Ao subir de nível/NEX, clique para recalcular status automaticamente.</p>
+                <div class="evolucao-controles">
+                    <button type="button" class="btn-calcular" onclick="subirNivel(-1)">▼ Nível</button>
+                    <span id="nivelDisplay" class="nivel-display">Nível {{ ficha.nivel }}</span>
+                    <button type="button" class="btn-calcular" onclick="subirNivel(1)">▲ Nível</button>
+                    <button type="button" class="btn-calcular" style="margin-left:15px;" onclick="calcularFormulas()">🔄 Recalcular Stats</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══════════════════════════════
+             ABA: COMBATE
+        ══════════════════════════════ -->
+        <div id="tab-combate" class="tab">
+            <h2 class="tab-titulo">Combate</h2>
+
+            <div class="combate">
+                <table>
+                    <thead>
+                        <tr><th>Ataque</th><th>Pontos / Bônus</th><th>Dano</th><th>🎲</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for i in "123" %}
+                        <tr>
+                            <td><input name="atk{{ i }}" value="{% if i == '1' %}{{ ficha.atk1 }}{% elif i == '2' %}{{ ficha.atk2 }}{% else %}{{ ficha.atk3 }}{% endif %}" placeholder="Nome do ataque"></td>
+                            <td><input name="pts{{ i }}" value="{% if i == '1' %}{{ ficha.pts1 }}{% elif i == '2' %}{{ ficha.pts2 }}{% else %}{{ ficha.pts3 }}{% endif %}" placeholder="+5"></td>
+                            <td><input name="dano{{ i }}" value="{% if i == '1' %}{{ ficha.dano1 }}{% elif i == '2' %}{{ ficha.dano2 }}{% else %}{{ ficha.dano3 }}{% endif %}" placeholder="1d8+3" id="dano{{ i }}Input"></td>
+                            <td><button type="button" class="btn-rolar-atk" onclick="rolarAtaque({{ i }})">🎲</button></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="resultado-atk" class="resultado-dado" style="display:none; margin-top:15px;"></div>
+        </div>
+
+        <!-- ══════════════════════════════
+             ABA: INVENTÁRIO
+        ══════════════════════════════ -->
+        <div id="tab-inventario" class="tab">
+            <h2 class="tab-titulo">🎒 Inventário</h2>
+
+            <div class="inventario-header">
+                <div class="carga-info">
+                    <span>⚖️ Carga: <strong id="pesoAtual">{{ ficha.peso_atual }}</strong> /
+                        <input name="carga_max" type="number" id="cargaMax" value="{{ ficha.carga_max }}" class="carga-input" step="0.5"> kg</span>
+                    <div class="barra-wrapper" style="max-width:200px;margin-top:4px;">
+                        <div class="barra barra-carga" id="barraCarga"></div>
+                    </div>
+                </div>
+                <button type="button" class="btn-adicionar-item" onclick="abrirModalItem()">+ Adicionar Item</button>
+            </div>
+
+            <div class="inventario-filtros">
+                <button type="button" class="filtro-btn active" onclick="filtrarInventario('todos', this)">Todos</button>
+                <button type="button" class="filtro-btn" onclick="filtrarInventario('arma', this)">⚔️ Armas</button>
+                <button type="button" class="filtro-btn" onclick="filtrarInventario('armadura', this)">🛡️ Armaduras</button>
+                <button type="button" class="filtro-btn" onclick="filtrarInventario('consumivel', this)">🧪 Consumíveis</button>
+                <button type="button" class="filtro-btn" onclick="filtrarInventario('misc', this)">📦 Misc</button>
+            </div>
+
+            <div id="lista-itens" class="lista-itens">
+                {% for item in itens %}
+                <div class="item-card" data-id="{{ item.id }}" data-categoria="{{ item.categoria }}">
+                    <div class="item-card-main">
+                        <span class="item-cat-icon">{% if item.categoria == 'arma' %}⚔️{% elif item.categoria == 'armadura' %}🛡️{% elif item.categoria == 'consumivel' %}🧪{% elif item.categoria == 'ferramenta' %}🔧{% else %}📦{% endif %}</span>
+                        <span class="item-nome">{{ item.nome }}</span>
+                        {% if item.dano %}<span class="item-dano">{{ item.dano }}</span>{% endif %}
+                        {% if item.bonus_ataque != 0 %}<span class="item-bonus">+{{ item.bonus_ataque }} atk</span>{% endif %}
+                        {% if item.bonus_defesa != 0 %}<span class="item-bonus">+{{ item.bonus_defesa }} def</span>{% endif %}
+                        <span class="item-qtd">x{{ item.quantidade }}</span>
+                        <span class="item-peso">{{ item.peso_total }}kg</span>
+                    </div>
+                    {% if item.modificacoes or item.maldicoes or item.descricao %}
+                    <div class="item-extras">
+                        {% if item.modificacoes %}<span class="tag-mod">✨ {{ item.modificacoes }}</span>{% endif %}
+                        {% if item.maldicoes %}<span class="tag-mal">💀 {{ item.maldicoes }}</span>{% endif %}
+                        {% if item.descricao %}<span class="item-desc">{{ item.descricao }}</span>{% endif %}
+                    </div>
+                    {% endif %}
+                    <div class="item-acoes">
+                        <button type="button" onclick="abrirModalItem({{ item.id }}, '{{ item.nome|escapejs }}', '{{ item.categoria }}', {{ item.quantidade }}, {{ item.peso }}, '{{ item.dano|escapejs }}', {{ item.bonus_ataque }}, {{ item.bonus_defesa }}, '{{ item.descricao|escapejs }}', '{{ item.modificacoes|escapejs }}', '{{ item.maldicoes|escapejs }}')" class="btn-edit-item">✏️</button>
+                        <button type="button" onclick="deletarItem({{ item.id }})" class="btn-del-item">🗑️</button>
+                        {% if item.dano %}<button type="button" onclick="rolarItemDano('{{ item.nome|escapejs }}', '{{ item.dano|escapejs }}')" class="btn-rolar-item">🎲</button>{% endif %}
+                    </div>
+                </div>
+                {% empty %}
+                <div id="inv-vazio" class="vazio">Nenhum item no inventário.</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- ══════════════════════════════
+             ABA: HABILIDADES
+        ══════════════════════════════ -->
+        <div id="tab-habilidades" class="tab">
+            <h2 class="tab-titulo">Habilidades & Poderes</h2>
+            <div class="habs-grid">
+                <div>
+                    <h3>✨ Habilidades</h3>
+                    <textarea name="habilidades" style="height:120px">{{ ficha.habilidades }}</textarea>
+                </div>
+                <div>
+                    <h3>🎯 Perícias</h3>
+                    <textarea name="pericias" style="height:120px">{{ ficha.pericias }}</textarea>
+                </div>
+                <div>
+                    <h3>⭐ Vantagens</h3>
+                    <textarea name="vantagens" style="height:120px">{{ ficha.vantagens }}</textarea>
+                </div>
+                <div>
+                    <h3>⚡ Poderes (por Nível)</h3>
+                    <textarea name="poderes" style="height:120px" placeholder="Nível 1: ...\nNível 2: ...">{{ ficha.poderes }}</textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══════════════════════════════
+             ABA: DADOS
+        ══════════════════════════════ -->
+        <div id="tab-dados" class="tab">
+            <h2 class="tab-titulo">🎲 Rolar Dados</h2>
+
+            <div class="dados-input">
+                <input type="text" id="expressaoDado" placeholder="Ex: 1d20, 2d6+3" maxlength="20">
+                <input type="text" id="contextoDado" placeholder="Contexto (ex: Ataque)" maxlength="50" style="flex:1">
+                <button type="button" onclick="rolarDado()">Rolar</button>
+            </div>
+
+            <div id="resultado-dado" class="resultado-dado" style="display:none;"></div>
+
+            <div class="historico-titulo">Histórico</div>
+            <div id="historico-local" class="historico-lista">
+                {% for r in rolagens %}
+                <div class="entrada-rolagem">
+                    {% if r.contexto %}<span class="ctx">{{ r.contexto }}</span>{% endif %}
+                    <span class="expr">{{ r.expressao }}</span>
+                    <span class="detalhes">[{{ r.resultado.dados|join:", " }}{% if r.resultado.modificador != 0 %} {{ r.resultado.modificador|stringformat:"+d" }}{% endif %}]</span>
+                    <span class="total">= {{ r.resultado.total }}</span>
+                    <span class="tempo">{{ r.criado_em|timesince }} atrás</span>
+                </div>
+                {% empty %}
+                <p class="vazio">Nenhuma rolagem ainda.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+    </div><!-- /ficha-content -->
+</div><!-- /ficha-layout -->
+</form>
+
+<!-- FORM DELETE -->
+<form id="deleteForm" method="POST" action="/deletar/{{ ficha.id }}/">{% csrf_token %}</form>
+
+<!-- MODAL ITEM -->
+<div id="modalItem" class="modal-overlay" style="display:none;">
+    <div class="modal-box">
+        <h3 id="modalTitulo">Adicionar Item</h3>
+        <input type="hidden" id="modalItemId">
+        <div class="modal-grid">
+            <div class="modal-campo modal-wide">
+                <label>Nome</label>
+                <input id="mNome" type="text" placeholder="Espada Longa">
+            </div>
+            <div class="modal-campo">
+                <label>Categoria</label>
+                <select id="mCategoria">
+                    <option value="arma">⚔️ Arma</option>
+                    <option value="armadura">🛡️ Armadura</option>
+                    <option value="consumivel">🧪 Consumível</option>
+                    <option value="ferramenta">🔧 Ferramenta</option>
+                    <option value="misc">📦 Misc</option>
+                </select>
+            </div>
+            <div class="modal-campo">
+                <label>Quantidade</label>
+                <input id="mQtd" type="number" value="1" min="1">
+            </div>
+            <div class="modal-campo">
+                <label>Peso (kg/unid.)</label>
+                <input id="mPeso" type="number" value="0" step="0.1" min="0">
+            </div>
+            <div class="modal-campo">
+                <label>Dano</label>
+                <input id="mDano" type="text" placeholder="1d8+2">
+            </div>
+            <div class="modal-campo">
+                <label>Bônus Ataque</label>
+                <input id="mBonusAtk" type="number" value="0">
+            </div>
+            <div class="modal-campo">
+                <label>Bônus Defesa</label>
+                <input id="mBonusDef" type="number" value="0">
+            </div>
+            <div class="modal-campo modal-wide">
+                <label>Modificações / Encantamentos</label>
+                <input id="mMods" type="text" placeholder="Ex: +1 flamejante">
+            </div>
+            <div class="modal-campo modal-wide">
+                <label>Maldições</label>
+                <input id="mMals" type="text" placeholder="Ex: Maldição da Fome">
+            </div>
+            <div class="modal-campo modal-full">
+                <label>Descrição</label>
+                <textarea id="mDesc" style="height:60px;width:100%;"></textarea>
+            </div>
+        </div>
+        <div class="modal-acoes">
+            <button type="button" onclick="fecharModal()" class="btn-cancelar">Cancelar</button>
+            <button type="button" onclick="salvarItem()" class="btn-salvar">Salvar</button>
+        </div>
+    </div>
+</div>
+
+<script>
+const FICHA_ID = {{ ficha.id }};
+const CSRF = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+// ─── ABAS ───
+document.querySelectorAll('.ficha-item').forEach(item => {
+    item.addEventListener('click', e => {
+        e.preventDefault();
+        const target = item.dataset.tab;
+        document.querySelectorAll('.ficha-item').forEach(i => i.classList.remove('active'));
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        item.classList.add('active');
+        document.getElementById('tab-' + target).classList.add('active');
+    });
+});
+
+// ─── AUTOSAVE ───
+const form = document.getElementById('form');
+let autoSaveTimer;
+form.addEventListener('input', () => {
+    clearTimeout(autoSaveTimer);
+    autoSaveTimer = setTimeout(() => {
+        fetch(`/autosave/${FICHA_ID}/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': CSRF },
+            body: new FormData(form)
+        });
+        atualizarBarras();
+    }, 800);
+});
+
+// ─── BARRAS DE STATUS ───
+function pct(a, b) { return b > 0 ? Math.min(100, Math.round((a/b)*100)) : 0; }
+function atualizarBarras() {
+    const v = +document.getElementById('inVida')?.value || 0;
+    const vm = +document.getElementById('inVidaMax')?.value || 0;
+    const e = +document.getElementById('inEnergia')?.value || 0;
+    const em = +document.getElementById('inEnergiaMax')?.value || 0;
+    const s = +document.getElementById('inSanidade')?.value || 0;
+    const sm = +document.getElementById('inSanidadeMax')?.value || 0;
+
+    const bv = document.getElementById('barraVida');
+    const be = document.getElementById('barraEnergia');
+    const bs = document.getElementById('barraSan');
+    if (bv) bv.style.width = pct(v, vm) + '%';
+    if (be) be.style.width = pct(e, em) + '%';
+    if (bs) bs.style.width = pct(s, sm) + '%';
+    atualizarCarga();
+}
+
+function atualizarCarga() {
+    const atual = parseFloat(document.getElementById('pesoAtual')?.textContent || 0);
+    const max = parseFloat(document.getElementById('cargaMax')?.value || 0);
+    const bc = document.getElementById('barraCarga');
+    if (bc) {
+        const p = pct(atual, max);
+        bc.style.width = p + '%';
+        bc.style.background = p >= 100 ? '#e55' : p >= 75 ? '#fa0' : '#6a6';
+    }
+}
+atualizarBarras();
+
+// ─── FÓRMULAS DE CÁLCULO ───
+function getAttr(nome) {
+    return parseInt(document.getElementById('in' + nome)?.value || 0);
+}
+
+function calcularFormulas() {
+    const vars = {
+        FOR: getAttr('forca'), DES: getAttr('destreza'), CON: getAttr('constituicao'),
+        INT: getAttr('inteligencia'), SAB: getAttr('sabedoria'), CAR: getAttr('carisma'),
+        NIVEL: parseInt(document.getElementById('inNivel')?.value || 1),
+        ARMADURA: parseInt(document.getElementById('inArmadura')?.value || 0),
+    };
+
+    function avaliar(formula) {
+        if (!formula) return null;
+        let expr = formula.toUpperCase();
+        for (const [k, v] of Object.entries(vars)) {
+            expr = expr.replace(new RegExp('\\b' + k + '\\b', 'g'), v);
+        }
+        try { return Math.floor(Function('"use strict"; return (' + expr + ')')()) } catch { return null; }
+    }
+
+    const fv = document.querySelector('[name=formula_vida]')?.value;
+    const fe = document.querySelector('[name=formula_energia]')?.value;
+    const fs = document.querySelector('[name=formula_sanidade]')?.value;
+    const fd = document.querySelector('[name=formula_defesa]')?.value;
+
+    const rv = avaliar(fv), re = avaliar(fe), rs = avaliar(fs), rd = avaliar(fd);
+
+    if (rv !== null) { document.getElementById('inVidaMax').value = rv; }
+    if (re !== null) { document.getElementById('inEnergiaMax').value = re; }
+    if (rs !== null) { document.getElementById('inSanidadeMax').value = rs; }
+    if (rd !== null) { document.getElementById('inDefesa').value = rd; }
+
+    atualizarBarras();
+}
+
+// ─── BÔNUS DE ATRIBUTOS ───
+function calcBonus(attr) {
+    const val = parseInt(document.getElementById('in' + attr)?.value || 0);
+    const bonus = Math.floor((val - 10) / 2);
+    const el = document.getElementById('bonus_' + attr);
+    if (el) el.value = bonus;
+    calcularFormulas();
+}
+
+// ─── EVOLUÇÃO / NÍVEL ───
+function subirNivel(delta) {
+    const el = document.getElementById('inNivel');
+    const novoNivel = Math.max(1, parseInt(el.value || 1) + delta);
+    el.value = novoNivel;
+    document.getElementById('nivelDisplay').textContent = 'Nível ' + novoNivel;
+    calcularFormulas();
+}
+
+// ─── FOTO ───
+document.getElementById('fotoInput').addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (file) {
+        const preview = document.getElementById('preview');
+        preview.src = URL.createObjectURL(file);
+        preview.style.display = 'block';
+        const ph = document.getElementById('placeholder');
+        if (ph) ph.style.display = 'none';
+    }
+});
+
+// ─── DELETE ───
+function confirmarDelete() {
+    if (confirm('Tem certeza que deseja excluir essa ficha?')) {
+        document.getElementById('deleteForm').submit();
+    }
+}
+
+// ─── ROLAR ATRIBUTO ───
+async function rolarAtributo(label, attr) {
+    const bonus = parseInt(document.getElementById('bonus_' + attr)?.value || 0);
+    const expr = bonus >= 0 ? `1d20+${bonus}` : `1d20${bonus}`;
+    const res = await fetch(`/rolar/${FICHA_ID}/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': CSRF },
+        body: new URLSearchParams({ expressao: expr, contexto: `Teste ${label}` }),
+    });
+    const data = await res.json();
+    if (data.status !== 'ok') return;
+    const box = document.getElementById('resultado-attr');
+    box.style.display = 'block';
+    const mod = data.modificador !== 0 ? ` ${data.modificador > 0 ? '+' : ''}${data.modificador}` : '';
+    box.innerHTML = `<div><strong>${label}</strong> — ${expr}</div>
+        <div>${data.dados.map(v=>`<span class="dado-individual">🎲 ${v}</span>`).join('')}${mod ? `<span style="color:#aaa">${mod}</span>` : ''}</div>
+        <div class="total-grande">${data.total}</div>`;
+    adicionarHistorico(data);
+}
+
+// ─── ROLAR ATAQUE ───
+async function rolarAtaque(i) {
+    const danoInput = document.getElementById(`dano${i}Input`);
+    const expr = danoInput?.value?.trim();
+    const nomeAtk = document.querySelector(`[name="atk${i}"]`)?.value || `Ataque ${i}`;
+    if (!expr) return alert('Preencha o campo de dano do ataque.');
+    const res = await fetch(`/rolar/${FICHA_ID}/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': CSRF },
+        body: new URLSearchParams({ expressao: expr, contexto: nomeAtk }),
+    });
+    const data = await res.json();
+    if (data.status !== 'ok') return alert(data.msg);
+    const box = document.getElementById('resultado-atk');
+    box.style.display = 'block';
+    const mod = data.modificador !== 0 ? ` ${data.modificador > 0 ? '+' : ''}${data.modificador}` : '';
+    box.innerHTML = `<div><strong>${nomeAtk}</strong> — ${expr}</div>
+        <div>${data.dados.map(v=>`<span class="dado-individual">🎲 ${v}</span>`).join('')}${mod ? `<span style="color:#aaa">${mod}</span>` : ''}</div>
+        <div class="total-grande">${data.total}</div>`;
+    adicionarHistorico(data);
+}
+
+// ─── ROLAR ITEM (dano) ───
+async function rolarItemDano(nome, expr) {
+    const res = await fetch(`/rolar/${FICHA_ID}/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': CSRF },
+        body: new URLSearchParams({ expressao: expr, contexto: nome }),
+    });
+    const data = await res.json();
+    if (data.status === 'ok') adicionarHistorico(data);
+}
+
+// ─── DADOS GENÉRICOS ───
+async function rolarDado() {
+    const input = document.getElementById('expressaoDado');
+    const contextoInput = document.getElementById('contextoDado');
+    const expressao = input.value.trim();
+    const contexto = contextoInput.value.trim();
+    if (!expressao) return;
+
+    const res = await fetch(`/rolar/${FICHA_ID}/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': CSRF },
+        body: new URLSearchParams({ expressao, contexto }),
+    });
+    const data = await res.json();
+    const box = document.getElementById('resultado-dado');
+    box.style.display = 'block';
+
+    if (data.status !== 'ok') {
+        box.innerHTML = `<span style="color:#f88">⚠️ ${data.msg}</span>`;
+        return;
+    }
+
+    const dadosHTML = data.dados.map(v => `<span class="dado-individual">🎲 ${v}</span>`).join('');
+    const mod = data.modificador !== 0 ? `<span style="color:#aaa"> ${data.modificador > 0 ? '+' : ''}${data.modificador}</span>` : '';
+    const ctx = data.contexto ? `<div style="color:#888;font-size:.8rem">${data.contexto}</div>` : '';
+
+    box.innerHTML = `${ctx}<div>${dadosHTML}${mod}</div><div class="total-grande">${data.total}</div><div style="color:#555;font-size:.8rem">${data.expressao}</div>`;
+    adicionarHistorico(data);
+    input.value = '';
+    input.focus();
+}
+
+function adicionarHistorico(data) {
+    const lista = document.getElementById('historico-local');
+    const vazio = lista.querySelector('.vazio');
+    if (vazio) vazio.remove();
+    const entrada = document.createElement('div');
+    entrada.className = 'entrada-rolagem';
+    const mod = data.modificador !== 0 ? ` ${data.modificador > 0 ? '+' : ''}${data.modificador}` : '';
+    const ctx = data.contexto ? `<span class="ctx">${data.contexto}</span>` : '';
+    entrada.innerHTML = `${ctx}<span class="expr">${data.expressao}</span><span class="detalhes">[${data.dados.join(', ')}${mod}]</span><span class="total">= ${data.total}</span><span class="tempo">agora</span>`;
+    lista.prepend(entrada);
+}
+
+document.getElementById('expressaoDado').addEventListener('keydown', e => { if (e.key === 'Enter') rolarDado(); });
+
+// ─── INVENTÁRIO ───
+let editandoItemId = null;
+
+function abrirModalItem(id, nome, cat, qtd, peso, dano, bAtk, bDef, desc, mods, mals) {
+    editandoItemId = id || null;
+    document.getElementById('modalTitulo').textContent = id ? 'Editar Item' : 'Adicionar Item';
+    document.getElementById('mNome').value = nome || '';
+    document.getElementById('mCategoria').value = cat || 'misc';
+    document.getElementById('mQtd').value = qtd || 1;
+    document.getElementById('mPeso').value = peso || 0;
+    document.getElementById('mDano').value = dano || '';
+    document.getElementById('mBonusAtk').value = bAtk || 0;
+    document.getElementById('mBonusDef').value = bDef || 0;
+    document.getElementById('mDesc').value = desc || '';
+    document.getElementById('mMods').value = mods || '';
+    document.getElementById('mMals').value = mals || '';
+    document.getElementById('modalItem').style.display = 'flex';
+}
+
+function fecharModal() {
+    document.getElementById('modalItem').style.display = 'none';
+    editandoItemId = null;
+}
+
+async function salvarItem() {
+    const body = new URLSearchParams({
+        nome: document.getElementById('mNome').value,
+        categoria: document.getElementById('mCategoria').value,
+        quantidade: document.getElementById('mQtd').value,
+        peso: document.getElementById('mPeso').value,
+        dano: document.getElementById('mDano').value,
+        bonus_ataque: document.getElementById('mBonusAtk').value,
+        bonus_defesa: document.getElementById('mBonusDef').value,
+        descricao: document.getElementById('mDesc').value,
+        modificacoes: document.getElementById('mMods').value,
+        maldicoes: document.getElementById('mMals').value,
+    });
+
+    const url = editandoItemId
+        ? `/item/${editandoItemId}/editar/`
+        : `/ficha/${FICHA_ID}/item/adicionar/`;
+
+    const res = await fetch(url, { method: 'POST', headers: { 'X-CSRFToken': CSRF }, body });
+    const data = await res.json();
+
+    if (data.status === 'ok') {
+        fecharModal();
+        location.reload(); // simples e confiável
+    }
+}
+
+async function deletarItem(id) {
+    if (!confirm('Remover item?')) return;
+    const res = await fetch(`/item/${id}/deletar/`, { method: 'POST', headers: { 'X-CSRFToken': CSRF } });
+    const data = await res.json();
+    if (data.status === 'ok') {
+        document.querySelector(`.item-card[data-id="${id}"]`)?.remove();
+        document.getElementById('pesoAtual').textContent = data.peso_atual_ficha;
+        atualizarCarga();
+        if (!document.querySelector('.item-card')) {
+            document.getElementById('lista-itens').innerHTML = '<div class="vazio">Nenhum item no inventário.</div>';
+        }
+    }
+}
+
+function filtrarInventario(cat, btn) {
+    document.querySelectorAll('.filtro-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.item-card').forEach(card => {
+        card.style.display = (cat === 'todos' || card.dataset.categoria === cat) ? '' : 'none';
+    });
+}
+</script>
+
+</body>
+</html>
